@@ -1,0 +1,1077 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wikipedia Explorations</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a work surface. A full-width top bar (title, search, map controls), the map filling
+   the rest, and a drawer on the right holding the selected page and reference lists. */
+:root {
+  --sheet: #f6f8f9; --panel: #ffffff; --ink: #10202c; --ink-2: #4a5a66; --rule: #d5dce1; --accent: #1c5cab;
+  --glow: #0a6fe0; --glow2: #c2410c; --glow3: #15803d; --core: #06264d;
+  --b0: #2a78d6; --b1: #eb6834; --b2: #1baf7a; --b3: #eda100; --b4: #e87ba4; --b5: #008300; --b6: #6250d6; --b7: #e34948;
+  --b8: #7d8a93; --b9: #a9b3ba;
+  /* kinds of thing: up to fifteen families; the two leftover groups use the grays above */
+  --k0: #2a78d6; --k1: #eb6834; --k2: #1baf7a; --k3: #008300; --k4: #eda100; --k5: #e87ba4; --k6: #e34948; --k7: #8a2b2b;
+  --k8: #6250d6; --k9: #12a5c4; --k10: #9ab82a; --k11: #b44fc2; --k12: #8d6238; --k13: #c9a070; --k14: #1f4e8c;
+  /* specificity: a ramp that changes hue as well as lightness, strongest at the general end; the last is "not scored" */
+  --g0: #2a0a6b; --g1: #8a1fa6; --g2: #d1366b; --g3: #ee7f35; --g4: #e0b84a; --g5: #d9d3a8; --g6: #a9b3ba;
+  /* charts: a link or step to a more general article, and to a more specific one; what was counted, and what was guessed */
+  --up: #2a78d6; --down: #eb6834; --obs: #2a78d6; --hyp: #eb6834;
+  --display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --bar: 54px; --drawer: 372px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sheet: #0d141c; --panel: #131c27; --ink: #e6edf2; --ink-2: #9fb0bd; --rule: #25323f; --accent: #86b6ef;
+    --glow: #5fdcff; --glow2: #ffb454; --glow3: #a5f26a; --core: #ffffff;
+    --b0: #3987e5; --b1: #d95926; --b2: #199e70; --b3: #c98500; --b4: #d55181; --b5: #008300; --b6: #9085e9; --b7: #e66767;
+    --b8: #6f7d88; --b9: #47535e;
+    --k0: #3987e5; --k1: #d95926; --k2: #199e70; --k3: #2f9a2f; --k4: #c98500; --k5: #d55181; --k6: #e66767; --k7: #a84444;
+    --k8: #9085e9; --k9: #2bb3d0; --k10: #a3bf3a; --k11: #c06bd0; --k12: #a37a4e; --k13: #d2b48c; --k14: #5f8fd0;
+    --g0: #ffe14d; --g1: #ff8f3c; --g2: #e6457e; --g3: #a455e0; --g4: #4f6fd0; --g5: #33406e; --g6: #47535e;
+    --up: #3987e5; --down: #d95926; --obs: #3987e5; --hyp: #d95926;
+    color-scheme: dark;
+  }
+}
+html, body { height: 100%; margin: 0; overflow: hidden; background: var(--sheet); color: var(--ink); font: 14px/1.45 var(--body); }
+canvas { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+canvas.dragging { cursor: grabbing; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+a { color: var(--accent); }
+.num { font: 12px var(--mono); color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Top bar */
+#bar { position: fixed; inset: 0 0 auto 0; height: var(--bar); box-sizing: border-box; z-index: 5; display: flex; align-items: center; gap: 16px; padding: 0 14px; background: var(--panel); border-bottom: 1px solid var(--rule); }
+h1 { font: 400 25px/1 var(--display); margin: 0; white-space: nowrap; }
+h1 em { color: var(--accent); }
+.search { position: relative; flex: 0 1 380px; min-width: 120px; }
+.search input { width: 100%; box-sizing: border-box; font: 14px var(--body); padding: 7px 10px; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule); border-radius: 3px; }
+.search input:focus { border-color: var(--ink-2); }
+#results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; margin: 0; padding: 0; list-style: none; background: var(--panel); border: 1px solid var(--ink-2); border-radius: 3px; max-height: 320px; overflow-y: auto; }
+#results button { display: flex; justify-content: space-between; gap: 10px; width: 100%; text-align: left; font: 14px var(--body); color: var(--ink); background: none; border: 0; padding: 7px 10px; cursor: pointer; }
+#results button:hover, #results button:focus-visible { background: var(--sheet); }
+#results span { font: 12px var(--mono); color: var(--ink-2); white-space: nowrap; }
+#status { flex: 1; min-width: 0; margin: 0; font: 11px var(--mono); color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tools { display: flex; gap: 4px; }
+.tools button { white-space: nowrap; font: 500 13px var(--mono); min-width: 34px; height: 32px; padding: 0 9px; color: var(--ink); background: var(--sheet); border: 1px solid var(--rule); border-radius: 3px; cursor: pointer; }
+.tools button:hover { border-color: var(--ink-2); }
+.tools button[aria-expanded="true"], .tools button[aria-pressed="true"] { background: var(--ink); color: var(--panel); border-color: var(--ink); }
+.tools .gap { margin-left: 8px; }
+
+/* Drawer */
+#drawer { position: fixed; top: var(--bar); right: 0; bottom: 0; width: min(var(--drawer), 100vw); box-sizing: border-box; z-index: 4; overflow-y: auto; background: var(--panel); border-left: 1px solid var(--rule); }
+#drawer details { border-bottom: 1px solid var(--rule); }
+#drawer summary { display: flex; align-items: center; gap: 8px; padding: 12px 16px; cursor: pointer; list-style: none; font: 500 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+#drawer summary::-webkit-details-marker { display: none; }
+#drawer summary::before { content: "›"; font-size: 15px; line-height: 1; transition: transform 0.15s; }
+#drawer details[open] > summary::before { transform: rotate(90deg); }
+#drawer details[open] > summary { color: var(--ink); }
+#drawer summary .count { margin-left: auto; font-weight: 400; letter-spacing: 0; text-transform: none; }
+#drawer .body { padding: 0 16px 16px; }
+#drawer h2 { font: 500 11px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); margin: 14px 0 6px; }
+#drawer p { margin: 4px 0; }
+.muted { color: var(--ink-2); font-size: 12.5px; }
+
+#sel h3 { font: 400 28px/1.05 var(--display); margin: 0 0 6px; overflow-wrap: anywhere; }
+#sel ol { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 2px 6px; font-size: 13px; }
+#sel ol li:not(:last-child)::after { content: "→"; color: var(--ink-2); margin-left: 6px; }
+#sel ul { margin: 0; padding: 0; list-style: none; font-size: 13px; }
+#sel ul li { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; border-bottom: 1px dotted var(--rule); }
+#sel button.link { font: inherit; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; text-decoration: underline; text-underline-offset: 2px; }
+#sel .act { font: 500 12px var(--mono); color: var(--ink); background: var(--sheet); border: 1px solid var(--rule); border-radius: 3px; padding: 5px 9px; margin: 10px 6px 0 0; cursor: pointer; }
+#sel .act:hover { border-color: var(--ink-2); }
+#sel .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+
+#journeys ol, #key ol, #kinds ol { margin: 0; padding: 0; list-style: none; font-size: 13px; }
+#journeys li button { display: grid; grid-template-columns: 2.2em 1fr auto; gap: 6px; width: 100%; font: inherit; color: var(--ink); background: none; border: 0; border-bottom: 1px dotted var(--rule); padding: 5px 0; cursor: pointer; text-align: left; }
+#journeys li button:hover, #key button:hover, #kinds button:hover { background: var(--sheet); }
+#kinds button[aria-pressed="true"], #key button[aria-pressed="true"] { background: var(--sheet); font-weight: 600; }
+body.by-kind #key .sw { background: var(--b8) !important; }      /* basin colors are not on the map just now */
+#journeys li small { grid-column: 2 / 4; color: var(--ink-2); font-size: 11.5px; }
+#key button, #kinds button { display: flex; gap: 8px; align-items: baseline; width: 100%; font: inherit; color: var(--ink); background: none; border: 0; border-bottom: 1px dotted var(--rule); padding: 5px 0; cursor: pointer; text-align: left; }
+#key .sw, #kinds .sw { flex: none; width: 9px; height: 9px; border-radius: 50%; }
+#key .grow, #kinds .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Color key on the map itself, for basins or kinds, shown whether or not the drawer is open */
+#mapkey { position: fixed; left: 14px; bottom: 14px; z-index: 3; margin: 0; padding: 8px 6px 6px; background: color-mix(in srgb, var(--panel) 92%, transparent); border: 1px solid var(--rule); border-radius: 4px; max-width: 250px; }
+#mapkey h2 { font: 500 10px var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); margin: 0 6px 4px; }
+#mapkey ol { margin: 0; padding: 0; list-style: none; }
+#mapkey button { display: flex; align-items: center; gap: 8px; width: 100%; font: 12.5px var(--body); color: var(--ink); background: none; border: 0; border-radius: 3px; padding: 2px 6px; cursor: pointer; text-align: left; }
+#mapkey button:hover { background: var(--sheet); }
+#mapkey button[aria-pressed="true"] { background: var(--sheet); font-weight: 600; }
+#mapkey.solo button[aria-pressed="false"] { opacity: 0.5; }
+#mapkey .sw { flex: none; width: 10px; height: 10px; border-radius: 50%; }
+#mapkey .num { margin-left: auto; padding-left: 10px; font-size: 11px; }
+#tip { position: fixed; z-index: 6; pointer-events: none; background: var(--ink); color: var(--sheet); padding: 5px 8px; font-size: 13px; border-radius: 3px; max-width: 260px; }
+#tip span { font: 12px var(--mono); opacity: 0.85; display: block; }
+
+/* Charts, here and on the Structure page */
+svg text { font: 11px var(--mono); fill: var(--ink-2); }
+svg .strong { fill: var(--ink); }
+svg .halo { paint-order: stroke; stroke: var(--sheet); stroke-width: 4px; stroke-linejoin: round; }
+svg .grid { stroke: var(--rule); stroke-width: 1; }
+svg .base { stroke: var(--ink-2); stroke-width: 1; }
+svg .obs { fill: var(--obs); }
+svg .obsline { fill: none; stroke: var(--obs); stroke-width: 2; stroke-linejoin: round; }
+svg .hyp { fill: none; stroke: var(--hyp); stroke-width: 2; stroke-dasharray: 5 4; }
+svg .hit { fill: transparent; }
+svg .up { stroke: var(--up); } svg .down { stroke: var(--down); } svg .flat, svg .none { stroke: var(--ink-2); }
+#structure svg, #sel svg { display: block; max-width: 100%; height: auto; overflow: visible; }
+.key { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 6px 0; font-size: 12.5px; color: var(--ink-2); }
+.key i { display: inline-block; width: 16px; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 6px; }
+.key i.box { height: 10px; border: 0; border-radius: 2px; }
+.key i.dash { border-top-style: dashed; }
+
+/* Route profile in the drawer: the selected route laid out straight, height showing how general each page is */
+#sel svg .halo, #sel svg circle.page { stroke: var(--panel); }
+#sel svg .seg { fill: none; stroke-width: 2.5; stroke-linecap: round; }
+#sel svg .seg.none, #sel svg .seg.back { stroke-dasharray: 3 4; stroke-width: 1.5; }
+#sel svg .hit { cursor: pointer; }
+
+/* Structure page: covers the map; the bar stays */
+#structure { position: fixed; inset: var(--bar) 0 0 0; z-index: 4; overflow-y: auto; background: var(--sheet); }
+body.structure #drawer, body.structure #mapkey, body.structure #tint, body.structure #sets, body.structure #status,
+body.structure #zin, body.structure #zout, body.structure #zfit, body.structure #dbtn { display: none; }
+.st { max-width: 860px; margin: 0 auto; padding: 34px 20px 90px; font-size: 15px; line-height: 1.6; }
+.st h2 { font: 400 44px/1.05 var(--display); margin: 0 0 14px; }
+.st h3 { font: 400 30px/1.12 var(--display); margin: 0 0 8px; }
+.st h4 { font: 600 14px var(--body); margin: 26px 0 4px; }
+.st p { max-width: 66ch; margin: 8px 0; }
+.st .lede { font-size: 17px; }
+.st section { margin-top: 58px; padding-top: 26px; border-top: 1px solid var(--rule); }
+.st .part { font: 500 13px var(--mono); color: var(--ink-2); margin: 0 0 6px; }
+.st figure { margin: 18px 0 6px; }
+.st .note { color: var(--ink-2); font-size: 13px; }
+.st .pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 14px 0 4px; font-size: 13px; color: var(--ink-2); }
+.st .pick .tools { flex-wrap: wrap; }
+.st .pick button { height: 30px; font-size: 12px; }
+.st .pick label { display: inline-flex; align-items: center; gap: 6px; }
+.st select { font: 13px var(--body); height: 30px; padding: 0 8px; color: var(--ink); background: var(--panel); border: 1px solid var(--rule); border-radius: 3px; }
+.st .stats { display: flex; flex-wrap: wrap; gap: 14px 44px; margin: 16px 0 6px; }
+.st .stats strong { display: block; font: 400 52px/1 var(--display); color: var(--ink); }
+.st .stats span { color: var(--ink-2); font-size: 13px; }
+.st details.nums { margin: 6px 0 0; font-size: 12.5px; color: var(--ink-2); }
+.st details.nums summary { cursor: pointer; width: fit-content; }
+.st table { border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+.st th, .st td { padding: 4px 10px; text-align: right; border-bottom: 1px solid var(--rule); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.st th { font-weight: 500; color: var(--ink-2); vertical-align: bottom; white-space: normal; }
+.st th:first-child, .st td:first-child { text-align: left; padding-left: 0; }
+.st .scroll { overflow-x: auto; }
+.st .heat td.v { color: var(--ink); min-width: 62px; }
+.st .tomap { font: 500 13px var(--mono); height: 34px; padding: 0 14px; color: var(--panel); background: var(--ink); border: 1px solid var(--ink); border-radius: 3px; cursor: pointer; }
+.st .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; }
+.bars .row { display: grid; grid-template-columns: minmax(96px, 200px) 1fr 50px; gap: 10px; align-items: center; padding: 3px 0; font-size: 13px; }
+.bars .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bars .track { position: relative; height: 14px; border-radius: 2px; background: color-mix(in srgb, var(--rule) 50%, transparent); }
+.bars.half .track::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; border-left: 1px solid var(--ink-2); }
+.bars .fill { display: block; height: 100%; min-width: 2px; border-radius: 0 3px 3px 0; background: var(--up); }
+.bars .fill.down { background: var(--down); }
+.st .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 40px; }
+/* a drawing of an article: gray bars are words, colored chips are links */
+.page { border: 1px solid var(--rule); border-radius: 4px; background: var(--panel); padding: 20px 22px 8px; max-width: 760px; }
+.page .ttl { height: 16px; width: 44%; border-radius: 2px; background: var(--ink); opacity: 0.75; margin-bottom: 14px; }
+.page .hd { height: 11px; width: 26%; border-radius: 2px; background: var(--ink); opacity: 0.5; margin: 18px 0 12px; }
+.page .reg { display: grid; grid-template-columns: 1fr 210px; gap: 22px; align-items: center; padding: 10px 0; border-top: 1px dotted var(--rule); }
+.page .reg:first-of-type { border-top: 0; }
+.page .txt { display: flex; flex-wrap: wrap; gap: 7px 5px; align-content: flex-start; }
+.page .txt.list { display: grid; grid-template-columns: 1fr 1fr; gap: 7px 18px; }
+.page .txt.list div { display: flex; gap: 5px; align-items: center; }
+.page .txt.list div::before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--ink-2); }
+.page .wd { height: 8px; border-radius: 2px; background: var(--rule); }
+.page .lk { height: 14px; min-width: 30px; padding: 0 5px; margin: -3px 0; border-radius: 3px; font: 600 10px/14px var(--mono); color: #fff; text-align: center; background: var(--up); }
+.page .lk.down { background: var(--down); }
+.page .say strong { font: 400 38px/1 var(--display); display: block; }
+.page .say small { display: block; color: var(--ink-2); font-size: 12.5px; line-height: 1.4; }
+.page .say .where { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+@media (max-width: 720px) {
+  .st { padding: 22px 16px 70px; } .st h2 { font-size: 34px; } .st h3 { font-size: 25px; } .st .stats strong { font-size: 42px; }
+  .st .two { grid-template-columns: 1fr; }
+  .page { padding: 14px 14px 4px; } .page .reg { grid-template-columns: 1fr; gap: 8px; }
+  #views button { padding: 0 6px; font-size: 11px; }
+  body.structure .search { display: none; }
+}
+@media (max-width: 720px) {
+  #bar { gap: 8px; padding: 0 10px; }
+  h1 { font-size: 19px; } h1 span { display: none; }
+  #status, #zin, #zout { display: none; }
+  #sets button, #tint button { padding: 0 6px; font-size: 11px; }
+  #drawer { top: auto; left: 0; width: 100%; height: 46vh; border-left: 0; border-top: 1px solid var(--rule); }
+  #mapkey { left: 8px; bottom: auto; top: calc(var(--bar) + 8px); }
+  #mapkey .num { display: none; }
+}
+</style>
+</head>
+<body>
+<canvas id="map" aria-label="Zoomable river map of first-link paths on Wikipedia"></canvas>
+<header id="bar">
+  <h1><span>Wikipedia </span><em>Explorations</em></h1>
+  <div class="tools" id="views" role="group" aria-label="Map or charts" hidden>
+    <button data-view="map" aria-pressed="true" title="The map of paths">Map</button><button data-view="structure" aria-pressed="false" title="Charts of what the paths and the links have in common">Structure</button>
+  </div>
+  <div class="search">
+    <input id="q" type="search" placeholder="Find any article" autocomplete="off" aria-label="Find any article">
+    <ul id="results" hidden></ul>
+  </div>
+  <div class="tools" id="sets" role="group" aria-label="Which link each article follows" hidden></div>
+  <div class="tools" id="tint" role="group" aria-label="What the colors show" hidden>
+    <button data-by="basin" title="Color each stream by the cycle it ends in">Basins</button><button data-by="kind" title="Color each article by what kind of thing it is">Kinds</button><button data-by="spec" title="Color each article by how general or specific its subject is" hidden>Specificity</button>
+  </div>
+  <p id="status">Loading the map…</p>
+  <div class="tools">
+    <button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" aria-label="Show the whole map">Fit</button>
+    <button id="dbtn" class="gap" aria-expanded="true" aria-controls="drawer">Panel</button>
+  </div>
+</header>
+<aside id="drawer" aria-label="Details">
+  <details id="aboutBox"><summary>About this Map</summary><div class="body muted" id="about"></div></details>
+  <details id="selBox" open hidden><summary>Selected page</summary><div class="body" id="sel"></div></details>
+  <details id="jBox" hidden><summary>Longest journeys <span class="count num" id="jCount"></span></summary><div class="body" id="journeys"></div></details>
+  <details id="kindBox" hidden><summary>Kinds of thing <span class="count num" id="cCount"></span></summary><div class="body" id="kinds"></div></details>
+  <details id="keyBox"><summary>Largest basins <span class="count num" id="kCount"></span></summary><div class="body" id="key"></div></details>
+</aside>
+<nav id="mapkey" aria-label="Color key: kinds of thing" hidden></nav>
+<main id="structure" aria-label="Structure: charts" hidden></main>
+<div id="tip" hidden></div>
+
+<script>
+(async function () {
+  const $ = (id) => document.getElementById(id);
+  const fmt = (v) => v.toLocaleString("en-US"), pct = (v) => (100 * v).toFixed(1) + "%";
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const ROOT = new URLSearchParams(location.search).get("data") || "data/";
+  const TILE_PX = 300, MAX_TILES = 500, WIDTHS = [0.45, 0.9, 1.4, 2.1, 3.0, 4.2, 5.6, 7.2];
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // ---- The data set on show. Switching layout swaps all of this.
+  let base = ROOT, meta = null, exists = {}, SIZE = 1, LEVELS = 1, epoch = 0;
+  const tiles = new Map(), shards = new Map();
+  const getJSON = async (path) => { const r = await fetch(base + path); if (!r.ok) throw new Error(path); return r.json(); };
+
+  // ---- View: k = screen px per stored unit, (cx, cy) = world point at the center of the screen
+  const canvas = $("map"), ctx = canvas.getContext("2d");
+  const under = document.createElement("canvas"), uctx = under.getContext("2d");   // the map itself, redrawn only when it changes
+  let W = 0, H = 0, dpr = 1, view = { k: 1, cx: 0, cy: 0 }, dirty = true, css = {};
+  let CX = 0, CY = 0, VW = 1, VH = 1;          // center and size of the part of the map not covered by the bar and drawer
+  const sx = (x) => (x - view.cx) * view.k + CX, sy = (y) => (y - view.cy) * view.k + CY;
+  const wx = (px) => (px - CX) / view.k + view.cx, wy = (py) => (py - CY) / view.k + view.cy;
+  const fitK = () => Math.min(VW, VH) / SIZE * 0.95, maxK = () => 18 / meta.q;
+  function readTheme() {
+    const s = getComputedStyle(document.documentElement), v = (n) => s.getPropertyValue(n).trim();
+    css = { sheet: v("--sheet"), ink: v("--ink"), glows: [v("--glow"), v("--glow2"), v("--glow3")], core: v("--core"), b: Array.from({ length: 10 }, (_, i) => v("--b" + i)), k: Array.from({ length: 15 }, (_, i) => v("--k" + i)), g: Array.from({ length: 7 }, (_, i) => v("--g" + i)) };
+    dirty = true;
+  }
+  function resize() {
+    dpr = window.devicePixelRatio || 1; W = innerWidth; H = innerHeight;
+    canvas.width = under.width = W * dpr; canvas.height = under.height = H * dpr; inset();
+  }
+  function inset() {
+    const top = $("bar").offsetHeight, d = $("drawer"), sheet = matchMedia("(max-width: 720px)").matches;
+    const right = d.hidden || sheet ? 0 : d.offsetWidth, bottom = d.hidden || !sheet ? 0 : d.offsetHeight;
+    VW = Math.max(60, W - right); VH = Math.max(60, H - top - bottom); CX = VW / 2; CY = top + VH / 2; dirty = true;
+  }
+  function openDrawer(on) { $("drawer").hidden = !on; $("dbtn").setAttribute("aria-expanded", on); inset(); }
+  $("dbtn").onclick = () => openDrawer($("drawer").hidden);
+  addEventListener("resize", resize); resize(); readTheme();
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", readTheme);
+
+  // ---- Tiles: load what the view needs, forget what it has not needed for longest
+  let clock = 0;
+  function loadTile(z, tx, ty) {
+    const key = `${z}/${tx}_${ty}`, mine = epoch;
+    let t = tiles.get(key);
+    if (t) { t.used = clock; return t; }
+    t = { ready: false, used: clock };
+    tiles.set(key, t);
+    getJSON("tiles/" + key).then((d) => {
+      if (mine !== epoch) return;
+      const m = d.i.length, buckets = Array.from({ length: 8 }, () => Array.from({ length: 10 }, () => []));
+      const kbuckets = d.c ? Array.from({ length: 8 }, () => Array.from({ length: meta.kinds.length }, () => [])) : null;
+      const gbuckets = d.g && meta.specificity ? Array.from({ length: 8 }, () => Array.from({ length: meta.specificity.length }, () => [])) : null;
+      for (let i = 0; i < m; i++) {
+        const cls = Math.min(7, Math.floor(Math.log10(d.n[i])));
+        buckets[cls][d.b[i]].push(i);
+        if (kbuckets) kbuckets[cls][d.c[i]].push(i);
+        if (gbuckets) gbuckets[cls][d.g[i]].push(i);
+      }
+      Object.assign(t, d, { ready: true, m, buckets, kbuckets, gbuckets });
+      dirty = true;
+    }).catch(() => { if (mine === epoch) tiles.delete(key); });
+    return t;
+  }
+  function neededTiles() {
+    clock++;
+    const out = [], zmax = Math.max(0, Math.min(LEVELS - 1, Math.floor(Math.log2(SIZE * view.k / TILE_PX))));
+    for (let z = 0; z <= zmax; z++) {
+      const cell = SIZE / 2 ** z, last = 2 ** z - 1, has = exists[z];
+      if (!has) continue;
+      const x0 = Math.max(0, Math.floor(wx(0) / cell) - 1), x1 = Math.min(last, Math.floor(wx(W) / cell) + 1);
+      const y0 = Math.max(0, Math.floor(wy(0) / cell) - 1), y1 = Math.min(last, Math.floor(wy(H) / cell) + 1);
+      for (let tx = x0; tx <= x1; tx++) for (let ty = y0; ty <= y1; ty++) if (has.has(tx * 2 ** z + ty)) out.push(loadTile(z, tx, ty));
+    }
+    if (tiles.size > MAX_TILES) {
+      [...tiles.entries()].sort((a, b) => a[1].used - b[1].used).slice(0, tiles.size - MAX_TILES)
+        .forEach(([key, t]) => { if (t.used < clock) tiles.delete(key); });
+    }
+    return { list: out.filter((t) => t.ready), waiting: out.some((t) => !t.ready), zmax };
+  }
+
+  // ---- Drawing. The map goes to an off-screen sheet; the selected route is drawn over a dimmed copy of it.
+  let shown = [], selected = null, route = [], rivals = [], raceT0 = 0, raceMode = false;
+  let tintBy = "basin";                     // colors show basins, kinds of thing or specificity
+  const solo = { basin: -1, kind: -1, spec: -1 };     // in each coloring, the one basin, kind or band left bright (-1: all of them)
+  const byKind = () => tintBy === "kind" && meta && meta.kinds;
+  const bySpec = () => tintBy === "spec" && meta && meta.specificity;
+  const tagOf = (t) => (bySpec() && t.g) || (byKind() && t.c) || t.b;      // what a tile's pages are colored by just now
+  // a kind's color: the last two kinds are the leftover groups ("other" and "none"), which stay gray
+  const kindSlot = (i) => { const left = i - (meta.kinds.length - 2); return left >= 0 ? "b" + (8 + left) : "k" + i; };
+  const kindTone = (i) => { const s = kindSlot(i); return css[s[0]][+s.slice(1)]; };
+  function drawMap() {
+    const c = uctx, { list, waiting, zmax } = neededTiles();
+    shown = list;
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.fillStyle = css.sheet; c.fillRect(0, 0, W, H);
+    const boost = Math.min(2.4, Math.max(1, 1 + 0.22 * Math.log2(view.k / fitK() / 4)));
+    let count = 0;
+    const kinds = byKind(), spec = bySpec(), other = kinds || spec;
+    const only = solo[spec ? "spec" : kinds ? "kind" : "basin"];       // one basin, kind or band picked out: the rest is dimmed, and loses its names
+    c.lineCap = "round";
+    for (const lake of meta.lakes) {
+      const r = lake.r * view.k;
+      if (r < 1.5) continue;
+      c.beginPath(); c.arc(sx(lake.x), sy(lake.y), r, 0, 2 * Math.PI);
+      const tone = css.b[other ? 8 : lake.b];             // lakes belong to basins: neutral in the other colorings
+      const faint = !other && only >= 0 && lake.b !== only ? 0.15 : 1;
+      c.globalAlpha = 0.28 * faint; c.fillStyle = tone; c.fill();
+      c.globalAlpha = faint; c.strokeStyle = tone; c.lineWidth = 1.2; c.stroke();
+    }
+    for (let cls = 0; cls < 8; cls++) {
+      c.lineWidth = WIDTHS[cls] * boost;
+      for (let step = 0, nb = spec ? meta.specificity.length : kinds ? meta.kinds.length : 10; step < nb; step++) {
+        const b = spec ? nb - 1 - step : step;            // specificity: the general pages are drawn last, on top
+        c.globalAlpha = (cls === 0 ? 0.55 : 0.9) * (only >= 0 && b !== only ? 0.1 : 1);
+        c.strokeStyle = spec ? css.g[b] : kinds ? kindTone(b) : css.b[b];
+        c.beginPath();
+        for (const t of list) {
+          const ids = ((spec && t.gbuckets) || (kinds && t.kbuckets) || t.buckets)[cls][b];
+          for (let j = 0; j < ids.length; j++) {
+            const i = ids[j], ax = sx(t.x[i]), ay = sy(t.y[i]), bx = sx(t.px[i]), by = sy(t.py[i]);
+            if ((ax < 0 && bx < 0) || (ax > W && bx > W) || (ay < 0 && by < 0) || (ay > H && by > H)) continue;
+            c.moveTo(ax, ay); c.lineTo(bx, by); count++;
+          }
+        }
+        c.stroke();
+      }
+    }
+    c.globalAlpha = 1;
+    if (view.k * meta.q > 5) {          // close in: mark the pages themselves
+      c.fillStyle = css.ink;
+      for (const t of list) for (let i = 0; i < t.m; i++) {
+        const ax = sx(t.x[i]), ay = sy(t.y[i]);
+        if (ax < 0 || ax > W || ay < 0 || ay > H) continue;
+        c.globalAlpha = only >= 0 && tagOf(t)[i] !== only ? 0.12 : 1;
+        c.beginPath(); c.arc(ax, ay, t.n[i] > 1 ? 2.2 : 1.2, 0, 2 * Math.PI); c.fill();
+      }
+      c.globalAlpha = 1;
+    }
+    if (!selected) mapLabels(c, list, only, other);
+    $("status").textContent = `${fmt(count)} streams in view · detail level ${zmax + 1} of ${LEVELS}${waiting ? " · loading…" : ""}`;
+  }
+
+  function labeler(c) {
+    const placed = [];
+    return (text, x, y, font, color, centered) => {
+      c.font = font;
+      const w = c.measureText(text).width + 8, x0 = centered ? x - w / 2 : x, box = [x0, y - 15, x0 + w, y + 5];
+      if (box[2] < 0 || box[0] > W || box[3] < 0 || box[1] > H) return placed.length;
+      if (placed.some((p) => box[0] < p[2] && box[2] > p[0] && box[1] < p[3] && box[3] > p[1])) return placed.length;
+      placed.push(box);
+      c.textAlign = centered ? "center" : "left";
+      c.lineWidth = 4; c.strokeStyle = css.sheet; c.lineJoin = "round"; c.strokeText(text, x, y);
+      c.fillStyle = color; c.fillText(text, x, y);
+      return placed.length;
+    };
+  }
+  const SERIF = (px) => `italic ${px}px 'Instrument Serif', Georgia, serif`, MONO = "500 11px 'IBM Plex Mono', monospace";
+  function mapLabels(c, list, only, kinds) {
+    const place = labeler(c);
+    if (only < 0 || !kinds) for (const lake of meta.lakes) {         // cycles are not a kind of thing: unnamed while one kind is picked out
+      if (lake.R * view.k < 60) break;      // lakes are sorted by size
+      if (only >= 0 && lake.b !== only) continue;
+      place(lake.name.toUpperCase(), sx(lake.x), sy(lake.y) + lake.r * view.k + 16, MONO, css.ink, true);
+    }
+    const cand = [];
+    for (const t of list) {                 // each tile is sorted by traffic, so its first on-screen pages matter most
+      let got = 0;
+      for (let i = 0; i < t.m && got < 30; i++) {
+        const ax = sx(t.x[i]), ay = sy(t.y[i]);
+        if (ax < 0 || ax > W || ay < 0 || ay > H) continue;
+        if (only >= 0 && tagOf(t)[i] !== only) continue;
+        cand.push([t.n[i], t.t[i], ax, ay]); got++;
+      }
+    }
+    cand.sort((a, b) => b[0] - a[0]);
+    const close = view.k * meta.q > 9;
+    for (let i = 0, n = 0; i < cand.length && n < 90; i++) {
+      if (cand[i][0] < 2 && !close) break;
+      n = place(cand[i][1], cand[i][2] + 7, cand[i][3] + 5, SERIF(cand[i][0] > 5000 ? 18 : 15), css.ink);
+    }
+  }
+
+  function compose(now) {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.drawImage(under, 0, 0);
+    if (!selected) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalAlpha = 0.8; ctx.fillStyle = css.sheet; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1;   // dim everything else
+    ctx.lineCap = ctx.lineJoin = "round";
+    const racers = [{ d: selected, route }, ...rivals], racing = rivals.length > 0;
+    const steps = still ? Infinity : Math.max(0, (now - raceT0) / 320);          // in a race, one click every 320 ms
+    const place = labeler(ctx);
+    racers.forEach((r, n) => {
+      const glow = css.glows[n % css.glows.length], pts = r.route, banded = bySpec() && !racing;
+      const line = (upto) => {                                      // the route as far as `upto` clicks
+        ctx.beginPath();
+        const whole = Math.min(pts.length - 1, Math.floor(upto)), part = Math.min(1, upto - whole);
+        for (let i = 0; i <= whole; i++) (i ? ctx.lineTo(sx(pts[i].x), sy(pts[i].y)) : ctx.moveTo(sx(pts[i].x), sy(pts[i].y)));
+        let hx = pts[whole].x, hy = pts[whole].y;
+        if (whole < pts.length - 1) { hx += (pts[whole + 1].x - hx) * part; hy += (pts[whole + 1].y - hy) * part; ctx.lineTo(sx(hx), sy(hy)); }
+        return [sx(hx), sy(hy)];
+      };
+      if (pts.length > 1) {
+        ctx.strokeStyle = glow; ctx.shadowColor = glow;
+        if (racing) { ctx.globalAlpha = 0.22; ctx.shadowBlur = 0; ctx.lineWidth = 2; line(Infinity); ctx.stroke(); }   // the course ahead
+        let head = null;
+        if (!banded) {
+          ctx.globalAlpha = 0.16; ctx.lineWidth = 16; line(racing ? steps : Infinity); ctx.stroke();                     // wide halo
+          ctx.globalAlpha = 1; ctx.shadowBlur = 18; ctx.lineWidth = 3; head = line(racing ? steps : Infinity); ctx.stroke();
+        }
+        if (banded) {                 // specificity coloring: no halo; each step wears the color of the page it leaves
+          // the line is held back so that the pulses, in the same color at full strength, read against it
+          let along = 0;
+          for (let i = 0; i < pts.length - 1; i++) {
+            const ax = sx(pts[i].x), ay = sy(pts[i].y), bx = sx(pts[i + 1].x), by = sy(pts[i + 1].y);
+            const tone = css.g[pts[i].g >= 0 ? pts[i].g : css.g.length - 1];
+            const seg = () => { ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke(); };
+            ctx.strokeStyle = ctx.shadowColor = tone;
+            ctx.shadowBlur = 0; ctx.globalAlpha = 0.45; ctx.lineWidth = 3; seg();
+            ctx.globalAlpha = 1;
+            if (!still) {             // one run of pulses along the whole route: each segment picks up where the last left off
+              ctx.setLineDash([4, 36]); ctx.lineDashOffset = along - (now / 28) % 40;
+              ctx.shadowBlur = 10; ctx.lineWidth = 5.5; seg(); ctx.setLineDash([]);
+            } else seg();
+            along += Math.hypot(bx - ax, by - ay);
+          }
+          ctx.shadowBlur = 0;
+        } else {
+        ctx.shadowBlur = 6; ctx.strokeStyle = css.core; ctx.lineWidth = 1.2; line(racing ? steps : Infinity); ctx.stroke();   // bright core
+        }
+        if (racing) {
+          ctx.shadowBlur = 16; ctx.fillStyle = css.core; ctx.beginPath(); ctx.arc(head[0], head[1], 4.5, 0, 2 * Math.PI); ctx.fill();
+        } else if (!still && !banded) {                                                   // pulses running downstream
+          ctx.strokeStyle = css.core; ctx.setLineDash([3, 37]); ctx.lineDashOffset = -(now / 28) % 40;
+          ctx.shadowBlur = 12; ctx.lineWidth = 4.5; line(Infinity); ctx.stroke(); ctx.setLineDash([]);
+        }
+      }
+      ctx.shadowColor = glow; ctx.shadowBlur = 8; ctx.fillStyle = css.core;
+      if (!racing) for (const q of pts) {
+        if (banded) { ctx.shadowBlur = 0; ctx.fillStyle = css.g[q.g >= 0 ? q.g : css.g.length - 1]; ctx.strokeStyle = css.sheet; ctx.lineWidth = 1.5; }
+        ctx.beginPath(); ctx.arc(sx(q.x), sy(q.y), banded ? 4.5 : 2.6, 0, 2 * Math.PI); ctx.fill();
+        if (banded) ctx.stroke();
+      }
+      ctx.shadowColor = glow; ctx.shadowBlur = 8; ctx.fillStyle = css.core;
+      ctx.beginPath(); ctx.arc(sx(r.d.x), sy(r.d.y), 6.5, 0, 2 * Math.PI);
+      ctx.fillStyle = css.sheet; ctx.fill(); ctx.strokeStyle = glow; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.shadowBlur = 0;
+      place(r.d.t, sx(r.d.x) + 12, sy(r.d.y) + 5, SERIF(20), css.ink);
+      if (r.meet) place(r.meet.t, sx(r.meet.x) + 10, sy(r.meet.y) + 5, SERIF(18), css.ink);
+    });
+    if (!racing) for (let i = route.length - 1; i > 0; i--) place(route[i].t, sx(route[i].x) + 8, sy(route[i].y) + 5, SERIF(15), css.ink);
+  }
+  (function loop(now) {
+    if (meta && (dirty || (selected && !still))) {
+      if (dirty) { dirty = false; drawMap(); }
+      compose(now);
+    }
+    requestAnimationFrame(loop);
+  })(0);
+
+  // ---- Moving around
+  const clampK = (k) => Math.max(fitK() * 0.6, Math.min(maxK(), k));
+  function zoomAt(px, py, factor) {
+    const x = wx(px), y = wy(py);
+    view.k = clampK(view.k * factor);
+    view.cx = x - (px - CX) / view.k; view.cy = y - (py - CY) / view.k; dirty = true;
+  }
+  let fly = null;
+  function flyTo(x, y, k) {
+    const from = { ...view }, to = { cx: x, cy: y, k: clampK(k) }, t0 = performance.now(), dur = still ? 0 : 900;
+    cancelAnimationFrame(fly);
+    (function step(now) {
+      const u = dur ? Math.min(1, (now - t0) / dur) : 1, e = u < 0.5 ? 2 * u * u : 1 - 2 * (1 - u) * (1 - u);
+      view.k = Math.exp(Math.log(from.k) + (Math.log(to.k) - Math.log(from.k)) * e);
+      view.cx = from.cx + (to.cx - from.cx) * e; view.cy = from.cy + (to.cy - from.cy) * e; dirty = true;
+      if (u < 1) fly = requestAnimationFrame(step);
+    })(t0);
+  }
+  const pointers = new Map();
+  let moved = 0, pinch = 0;
+  canvas.addEventListener("pointerdown", (e) => { canvas.setPointerCapture(e.pointerId); pointers.set(e.pointerId, [e.clientX, e.clientY]); moved = 0; canvas.classList.add("dragging"); });
+  canvas.addEventListener("pointermove", (e) => {
+    const last = pointers.get(e.pointerId);
+    if (!last) { hover(e); return; }
+    pointers.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pointers.size === 1) {
+      view.cx -= (e.clientX - last[0]) / view.k; view.cy -= (e.clientY - last[1]) / view.k;
+      moved += Math.abs(e.clientX - last[0]) + Math.abs(e.clientY - last[1]); dirty = true;
+    } else if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()], dist = Math.hypot(a[0] - b[0], a[1] - b[1]);
+      if (pinch) zoomAt((a[0] + b[0]) / 2, (a[1] + b[1]) / 2, dist / pinch);
+      pinch = dist; moved = 99;
+    }
+  });
+  canvas.addEventListener("pointerup", (e) => {
+    if (pointers.size === 1 && moved < 6) { const d = nearest(e.clientX, e.clientY); if (d) select(d.id, false); }
+    pointers.delete(e.pointerId); pinch = 0; if (!pointers.size) canvas.classList.remove("dragging");
+  });
+  canvas.addEventListener("pointercancel", (e) => { pointers.delete(e.pointerId); pinch = 0; });
+  canvas.addEventListener("wheel", (e) => { e.preventDefault(); zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0018))); }, { passive: false });
+  $("zin").onclick = () => flyTo(view.cx, view.cy, view.k * 2);
+  $("zout").onclick = () => flyTo(view.cx, view.cy, view.k / 2);
+  $("zfit").onclick = () => flyTo(SIZE / 2, SIZE / 2, fitK());
+
+  // ---- Hover and select
+  function nearest(px, py) {
+    let best = null, bestD = 14 * 14;
+    for (const t of shown) for (let i = 0; i < t.m; i++) {
+      const dx = sx(t.x[i]) - px, dy = sy(t.y[i]) - py, d = dx * dx + dy * dy;
+      if (d < bestD) { bestD = d; best = { id: t.i[i], t: t.t[i], n: t.n[i], c: t.c ? t.c[i] : -1, g: t.g ? t.g[i] : -1 }; }
+    }
+    return best;
+  }
+  const tip = $("tip");
+  function hover(e) {
+    const d = e.pointerType === "touch" ? null : nearest(e.clientX, e.clientY);
+    if (!d) { tip.hidden = true; return; }
+    tip.innerHTML = `${esc(d.t)}<span>${d.n > 1 ? fmt(d.n) + " articles flow through" : "a spring: nothing flows into it"}</span>` +
+      (meta.kinds && d.c >= 0 ? `<span>${esc(meta.kinds[d.c].name)}</span>` : "") +
+      (bySpec() && d.g >= 0 ? `<span>Specificity: ${esc(meta.specificity[d.g].name.toLowerCase())}</span>` : "");
+    tip.hidden = false;
+    tip.style.left = Math.min(e.clientX + 14, W - tip.offsetWidth - 8) + "px";
+    tip.style.top = Math.max(8, e.clientY - tip.offsetHeight - 10) + "px";
+  }
+  canvas.addEventListener("pointerleave", () => { tip.hidden = true; });
+
+  // ---- Page records, fetched a shard at a time
+  const shard = (k) => { if (!shards.has(k)) shards.set(k, getJSON("idx/" + k)); return shards.get(k); };
+  async function record(id) {
+    const s = await shard(Math.floor(id / meta.shard)), j = id % meta.shard;
+    return { id, t: s.t[j], x: s.x[j], y: s.y[j], n: s.n[j], p: s.p[j], b: s.b[j], k: s.k[j], c: s.c ? s.c[j] : -1, g: s.g ? s.g[j] : -1, s: s.s ? s.s[j] : -1 };
+  }
+  const wiki = (t) => `https://${meta.wiki.replace(/wiki$/, "")}.wikipedia.org/wiki/${encodeURIComponent(t.replace(/ /g, "_"))}`;
+  let selecting = 0;
+  function deselect() { selecting++; selected = null; route = []; rivals = []; setRaceMode(false); $("selBox").hidden = true; dirty = true; }
+  async function follow(d, alive) {            // downstream from d until the path closes on itself or stops
+    const path = [d], seen = new Set([d.id]);
+    for (let cur = d; cur.p >= 0 && path.length < 80;) {
+      if (seen.has(cur.p)) { path.push(path.find((r) => r.id === cur.p)); return { path, loops: true }; }
+      cur = await record(cur.p);
+      if (!alive()) return null;
+      seen.add(cur.id); path.push(cur);
+    }
+    return { path, loops: false };
+  }
+  let card = {};
+  function fitPoints(pts) {
+    const x0 = Math.min(...pts.map((p) => p.x)), x1 = Math.max(...pts.map((p) => p.x)), y0 = Math.min(...pts.map((p) => p.y)), y1 = Math.max(...pts.map((p) => p.y));
+    flyTo((x0 + x1) / 2, (y0 + y1) / 2, 0.7 * Math.min(VW / Math.max(1, x1 - x0), VH / Math.max(1, y1 - y0)));
+  }
+  async function select(id, fly) {
+    const turn = ++selecting, alive = () => turn === selecting, d = await record(id);
+    if (!alive()) return;
+    selected = d; route = [d]; rivals = []; setRaceMode(false); dirty = true;
+    if (fly === true) flyTo(d.x, d.y, Math.max(view.k, maxK() / (1 + 0.9 * Math.log10(d.n))));
+    const went = await follow(d, alive);
+    if (!went) return;
+    route = went.path;
+    if (fly === "route") fitPoints(route);
+    const kids = await Promise.all(d.k.map(record));
+    if (!alive()) return;
+    card = { loops: went.loops, kids };
+    dirty = true; renderCard();
+  }
+  async function addRival(id) {
+    if (!selected || rivals.length >= 2 || id === selected.id || rivals.some((r) => r.d.id === id)) return;
+    const turn = selecting, alive = () => turn === selecting, d = await record(id);
+    const went = alive() && await follow(d, alive);
+    if (!went) return;
+    const j = went.path.findIndex((p) => route.some((m) => m.id === p.id));      // first page both routes share
+    rivals.push({ d, route: went.path, meet: j >= 0 ? went.path[j] : null, mine: j, theirs: j >= 0 ? route.findIndex((m) => m.id === went.path[j].id) : -1 });
+    fitPoints([...route, ...rivals.flatMap((r) => r.route)]);
+    raceT0 = performance.now() + (still ? 0 : 1000);      // let the view settle before the start
+    dirty = true; renderCard();
+  }
+  function setRaceMode(on) {
+    raceMode = on;
+    $("q").placeholder = on && selected ? `Race against ${selected.t}: pick an article` : "Find any article";
+    if (on) { $("q").value = ""; $("q").focus(); }
+  }
+  function renderCard() {
+    const d = selected, clicks = (n) => `${n} click${n === 1 ? "" : "s"}`;
+    const path = route.slice(0, card.loops ? -1 : undefined);
+    const shownPath = path.length > 14 ? [...path.slice(0, 7), null, ...path.slice(-6)] : path;
+    const ending = card.loops ? `then round the cycle from ${esc(route[route.length - 1].t)}` : "where the path stops: that article has no usable first link";
+    const dot = (n) => `<span class="dot" style="background:var(--glow${n ? n + 1 : ""})"></span>`;
+    const race = rivals.map((r, n) => `<p>${dot(n + 1)}<strong>${esc(r.d.t)}</strong> ` + (r.meet
+      ? `meets ${dot(0)}${esc(d.t)} at <strong>${esc(r.meet.t)}</strong>, after ${clicks(r.mine)} against ${clicks(r.theirs)}.`
+      : `never meets ${dot(0)}${esc(d.t)}: they drain to different places.`) + `</p>`).join("");
+    $("sel").innerHTML = `<h3>${esc(d.t)}</h3>
+      <p>${d.n > 1 ? `<span class="num">${fmt(d.n)}</span> articles flow through this page, <span class="num">${pct(d.n / meta.articles)}</span> of the encyclopedia.` : "A spring: no other article's first link leads here."}
+      <a href="${wiki(d.t)}" target="_blank" rel="noopener">Open the article</a></p>
+      ${meta.kinds && d.c >= 0 ? `<p><span class="dot" style="background:var(--${kindSlot(d.c)})"></span>Kind of thing: <strong>${esc(meta.kinds[d.c].name)}</strong></p>` : ""}
+      ${meta.specificity && d.s >= 0 ? `<p><span class="dot" style="background:var(--g${d.g})"></span>Specificity: more specific than <strong class="num">${(d.s / 10).toFixed(1)}%</strong> of articles</p>` : ""}
+      ${rivals.length ? `<h2>Race</h2>${race}` : ""}
+      ${rivals.length < 2 ? `<button class="act" id="race">${rivals.length ? "Add another racer" : "Race another article"}</button>` : ""}
+      ${rivals.length ? `<button class="act" id="replay">Replay</button>` : ""}
+      <button class="act" id="clear">Clear selection</button>
+      ${meta.specificity && path.length > 1 ? profile(path, card.loops) : ""}
+      <h2>Route downstream</h2>
+      <ol>${shownPath.map((s) => (s ? `<li>${bySpec() && s.g >= 0 ? `<span class="dot" title="${esc(meta.specificity[s.g].name)}" style="background:var(--g${s.g})"></span>` : ""}<button class="link" data-id="${s.id}">${esc(s.t)}</button></li>` : "<li>…</li>")).join("")}<li>${ending}</li></ol>
+      ${card.kids.length ? `<h2>Largest streams flowing in</h2><ul>${card.kids.map((c) => `<li><button class="link" data-id="${c.id}">${esc(c.t)}</button><span class="num">${fmt(c.n)}</span></li>`).join("")}</ul>` : ""}`;
+    $("selBox").hidden = false; $("selBox").open = true;
+    if ($("drawer").hidden) openDrawer(true);
+    $("clear").onclick = deselect;
+    $("sel").querySelectorAll("[data-id]").forEach((b) => (b.onclick = () => select(+b.dataset.id, true)));
+    if ($("race")) $("race").onclick = () => setRaceMode(true);
+    if ($("replay")) $("replay").onclick = () => { raceT0 = performance.now(); };
+  }
+  // The route laid out straight: one page per step, left to right, and the more general the page the higher it sits.
+  // The map's route bends with the shape of the whole network; here only the direction of each step is left.
+  function profile(path, loops) {
+    const n = path.length, WD = 340, L = 44, R = 12, T = 10, H = 108, lo = Math.log10(0.005), span = 2 - lo;
+    // rank as a share of all articles, 0 = most general; the two top bands are finer than the stored rank
+    const val = (d) => (d.s < 0 ? null : d.g === 0 ? 0.005 : d.g === 1 ? 0.03 : Math.max(0.1, d.s / 10));
+    const vals = path.map(val), y = (v) => (v == null ? T + H : T + H * (Math.log10(v) - lo) / span);
+    const gap = Math.min(70, (WD - L - R - 10) / Math.max(1, n - 1)), x = (i) => L + 10 + i * gap;
+    const way = (a, b) => (a == null || b == null ? "none" : b < a ? "up" : b > a ? "down" : "flat");
+    const bounds = [0.005, 0.01, 0.1, 1, 10, 50, 100];
+    let g = "";
+    for (const v of [0.01, 0.1, 1, 10, 100]) g += `<line class="grid" x1="${L}" x2="${WD - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v}%</text>`;
+    for (let b = 0; b < 6; b++) g += `<rect x="${L - 4}" y="${y(bounds[b])}" width="3" height="${y(bounds[b + 1]) - y(bounds[b])}" fill="var(--g${b})"/>`;
+    const ways = [];
+    for (let i = 0; i < n - 1; i++) {
+      ways.push(way(vals[i], vals[i + 1]));
+      g += `<line class="seg ${ways[i]}" x1="${x(i)}" y1="${y(vals[i])}" x2="${x(i + 1)}" y2="${y(vals[i + 1])}"/>`;
+    }
+    if (loops) {                      // the step that closes the cycle, drawn back under the line
+      const k = path.indexOf(route[route.length - 1]);
+      ways.push(way(vals[n - 1], vals[k]));
+      if (k < n - 1) g += `<path class="seg back ${ways[n - 1]}" d="M${x(n - 1)} ${y(vals[n - 1])} Q${(x(n - 1) + x(k)) / 2} ${Math.min(T + H + 46, Math.max(y(vals[n - 1]), y(vals[k])) + 34)} ${x(k)} ${y(vals[k])}"/>`;
+    }
+    path.forEach((d, i) => {
+      const said = `${esc(d.t)}<span>${vals[i] == null ? "not scored" : `more specific than ${(d.s / 10).toFixed(1)}% of articles`}</span><span>${i ? `${i} click${i === 1 ? "" : "s"} from the start` : "the start"}</span>`;
+      g += `<circle class="page" cx="${x(i)}" cy="${y(vals[i])}" r="${i ? 4 : 5.5}" stroke-width="1.5" fill="var(--g${d.g >= 0 ? d.g : 6})"/>` +
+        `<circle class="hit" cx="${x(i)}" cy="${y(vals[i])}" r="${Math.max(6, Math.min(11, gap / 2))}" data-id="${d.id}" data-tip="${esc(said)}"/>`;
+    });
+    g += `<text x="${L - 8}" y="${T + H + 22}" text-anchor="end">clicks</text><text x="${x(0)}" y="${T + H + 22}" text-anchor="middle">0</text>` +
+      (n > 2 ? `<text x="${x(n - 1)}" y="${T + H + 22}" text-anchor="middle">${n - 1}</text>` : "");
+    const steps = ways.filter((w) => w !== "none").length, ups = ways.filter((w) => w === "up").length, downs = ways.filter((w) => w === "down").length;
+    return `<h2>Route profile</h2>
+      <svg viewBox="0 0 ${WD} ${T + H + (loops ? 50 : 30)}" role="img" aria-label="The route as a straight line; height shows how general each page is">${g}</svg>
+      <p class="key"><span><i style="border-color:var(--up)"></i>to a more general page</span><span><i style="border-color:var(--down)"></i>to a more specific page</span></p>
+      <p class="muted">The same route, straightened. Higher is more general: the scale is the share of all articles that are more general than the page.
+      ${steps ? `<strong>${ups} of ${steps}</strong> step${steps === 1 ? "" : "s"} here lead${steps === 1 ? "s" : ""} to a more general page${downs ? `, ${downs} to a more specific one` : ""}.` : ""}${loops ? " The dashed curve is the step that closes the cycle." : ""}</p>`;
+  }
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && selected && document.activeElement !== $("q")) deselect(); });
+
+  // ---- Search: the manifest says which shard holds any title
+  const q = $("q"), results = $("results");
+  let searching = 0;
+  async function find(prefix, limit) {
+    const s = prefix.toLowerCase(), hits = [];
+    let lo = 0, hi = meta.manifest.length - 1;
+    while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (meta.manifest[mid] <= s) lo = mid; else hi = mid - 1; }
+    for (let k = lo; k < Math.min(lo + 3, meta.manifest.length) && hits.length < limit; k++) {
+      const part = await shard(k);
+      part.t.forEach((t, j) => { if (t.toLowerCase().startsWith(s)) hits.push({ id: k * meta.shard + j, t, n: part.n[j] }); });
+      if (part.t.length && !part.t[part.t.length - 1].toLowerCase().startsWith(s)) break;
+    }
+    return hits.sort((a, b) => (b.t.toLowerCase() === s) - (a.t.toLowerCase() === s) || b.n - a.n);
+  }
+  q.addEventListener("input", async () => {
+    const s = q.value.trim(), turn = ++searching;
+    if (s.length < 2) { results.hidden = true; return; }
+    const hits = await find(s, 200);
+    if (turn !== searching) return;
+    results.innerHTML = hits.length
+      ? hits.slice(0, 8).map((d) => `<li><button data-id="${d.id}">${esc(d.t)}<span>${fmt(d.n)}</span></button></li>`).join("")
+      : `<li><button disabled>No article on the map starts with that</button></li>`;
+    results.hidden = false;
+    results.querySelectorAll("button[data-id]").forEach((b) => (b.onclick = () => {
+      results.hidden = true;
+      if (raceMode) { setRaceMode(false); q.value = ""; addRival(+b.dataset.id); }
+      else { q.value = b.firstChild.textContent; if (viewNow !== "map") setView("map"); select(+b.dataset.id, true); }
+    }));
+  });
+  q.addEventListener("keydown", (e) => { if (e.key === "Enter") results.querySelector("button[data-id]")?.click(); if (e.key === "Escape") { results.hidden = true; if (raceMode) setRaceMode(false); } });
+  document.addEventListener("click", (e) => { if (!e.target.closest(".search")) results.hidden = true; });
+
+  // ---- Longest journeys: a list in the drawer; picking one traces it on the map
+  function fillJourneys(list) {
+    $("jBox").hidden = !list.length;
+    $("jCount").textContent = list.length ? `top ${list.length}` : "";
+    $("journeys").innerHTML = `<p class="muted">The articles that take the most clicks to reach the end of their path.</p><ol>` +
+      list.map((j, i) => `<li><button data-id="${j.id}"><span class="num">${i + 1}</span><span>${esc(j.t)}</span><span class="num">${j.steps} clicks</span>
+        <small>${j.loop ? "to the cycle " : "to the dead end "}${esc(j.end)}${j.joins ? ` · its own for ${j.own}, then joins at ${esc(j.joins)}` : ""}</small></button></li>`).join("") + `</ol>`;
+    $("journeys").querySelectorAll("button").forEach((b) => (b.onclick = () => select(+b.dataset.id, "route")));
+  }
+
+  // ---- Opening a data set
+  function buildKey() {
+    const named = meta.lakes.filter((l) => l.b < 8).sort((a, b) => a.b - b.b);
+    const dry = meta.dry_pages || 0, small = meta.placed - dry - named.reduce((sum, l) => sum + l.pages, 0);
+    basins = named.map((l) => ({ i: l.b, name: l.name, pages: l.pages, lake: l }));
+    if (small > 0) basins.push({ i: 8, name: "Smaller cycles", pages: small });
+    if (dry > 0) basins.push({ i: 9, name: "Dead ends", pages: dry });
+    $("kCount").textContent = `${fmt(meta.loops)} cycles in all`;
+    $("key").innerHTML = `<p class="muted">Each article belongs to the basin of the cycle its path ends in. Pick a basin to dim the rest.</p><ol>` + basins.map((r) =>
+      `<li><button data-i="${r.i}" aria-pressed="false"><span class="sw" style="background:var(--b${r.i})"></span><span class="grow">${esc(r.name)}</span><span class="num">${fmt(r.pages)}</span><span class="num">${pct(r.pages / meta.articles)}</span></button></li>`).join("") + `</ol>`;
+    $("key").querySelectorAll("button").forEach((b) => (b.onclick = () => {
+      const r = basins.find((x) => x.i === +b.dataset.i);
+      pick("basin", r.i);
+      if (solo.basin === r.i && r.lake) flyTo(r.lake.x, r.lake.y, Math.min(VW, VH) / (2.4 * r.lake.R));
+    }));
+    const kindMap = /^kind/.test(meta.rule || "");
+    $("about").innerHTML = (kindMap
+      ? `<p>Most Wikipedia articles open with a sentence that names what their subject is: "The red-tailed hawk (Buteo jamaicensis) is a bird of prey..." On this map, each article leads to the page for that word, so Red-tailed hawk leads to Bird of prey, and so on. Each path ends at either a terminal article or a cycle.</p>
+         <p>In cases where an opening sentence provides nothing we can parse using our spaCy-based parser, the article follows the first link in its text instead.</p>`
+      : `<p>This map illustrates the paths that emerge when clicking on the first link within the text of any Wikipedia article. All paths lead to a terminal article or article cycle. Click on an article to view the path from that article to its terminus.</p>`) +
+      `<h2>How Kinds are Determined</h2>
+       <p>We've attempted to color-code "kinds" of things on this map. We've used spaCy to identify the word naming the subject within the opening sentence of each article. For this, we've used its small English model (en_core_web_sm) to parse the grammar of each sentence, along with a short set of our own rules for picking out that word. For a sentence like "X is an American singer from Ohio," we take "singer" rather than "American" or "Ohio." Where an opening sentence gives us nothing to work with, we use Wikidata's record of what the subject is, or the article's title when it makes the kind plain (a list, a season, an election).</p>
+       ${meta.specificity ? `<h2>How Specificity is Estimated</h2>
+       <p>The Specificity coloring ranks every article from the most general to the most specific. The rank comes from a weighted sum of things we can count for one article: how many other articles link to it from their opening section, how common the words of its title are, how long the title is, how many articles name it as their main or parent topic, and a few more. The weights were chosen so that the sum agrees as often as possible with Wikidata's statements that one thing is a kind of, an instance of or a part of another. On statements kept aside for checking it orders about 91% of "kind of" pairs and 99% of "instance of" pairs correctly. It is an estimate: an obscure general article can rank as more specific than a well-known example of it.</p>` : ""}
+       <p>Built from the ${esc(meta.wiki)} dump of ${esc(meta.dump)}. Wikipedia text and links are licensed <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>.</p>`;
+  }
+  // ---- What the colors show: basins, or (when the data carries them) kinds of thing. Either way one can be picked out.
+  let basins = [];
+  function setTint(by, asked) {
+    tintBy = by === "kind" && meta && meta.kinds ? "kind" : by === "spec" && meta && meta.specificity ? "spec" : "basin";
+    $("tint").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.by === tintBy));
+    $("kindBox").hidden = !(meta && meta.kinds);
+    if (tintBy === "kind" && asked) $("kindBox").open = true;
+    document.body.classList.toggle("by-kind", tintBy !== "basin");
+    mapKey();
+    if (selected && card.kids) renderCard();       // the route list shows specificity dots only in that coloring
+    dirty = true;
+  }
+  $("tint").querySelectorAll("button").forEach((b) => (b.onclick = () => setTint(b.dataset.by, true)));
+  function pick(mode, i) {          // pick a basin or kind to dim the rest; pick it again to bring them back
+    solo[mode] = solo[mode] === i ? -1 : i;
+    setTint(mode, true);
+  }
+  function mapKey() {               // the key on the map itself, for whichever coloring is on
+    const kind = tintBy === "kind", spec = tintBy === "spec", now = solo[tintBy];
+    const rows = spec ? meta.specificity.map((k, i) => ({ i, name: k.name, share: k.pages / meta.placed })).filter((r) => r.share > 0)
+      : kind ? meta.kinds.map((k, i) => ({ i, name: k.name, share: k.pages / meta.placed })) : basins.map((r) => ({ i: r.i, name: r.name, share: r.pages / meta.articles }));
+    const heading = spec ? "Specificity" : kind ? "Kinds of thing" : "Basins", one = spec ? "band" : kind ? "kind" : "basin";
+    $("mapkey").setAttribute("aria-label", "Color key: " + heading.toLowerCase());
+    $("mapkey").innerHTML = `<h2>${heading}</h2><ol>` + rows.map((r) =>
+      `<li><button data-i="${r.i}" aria-pressed="${r.i === now}" title="Show only this ${one}"><span class="sw" style="background:var(--${spec ? "g" + r.i : kind ? kindSlot(r.i) : "b" + r.i})"></span>${esc(r.name)}<span class="num">${pct(r.share)}</span></button></li>`).join("") + `</ol>`;
+    $("mapkey").querySelectorAll("button").forEach((b) => (b.onclick = () => pick(tintBy, +b.dataset.i)));
+    $("mapkey").classList.toggle("solo", now >= 0);
+    $("mapkey").hidden = !rows.length;
+    $("kinds").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", +b.dataset.i === solo.kind));
+    $("key").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", +b.dataset.i === solo.basin));
+  }
+  function buildKinds() {
+    $("tint").hidden = !(meta.kinds || meta.specificity);
+    $("tint").querySelector('[data-by="kind"]').hidden = !meta.kinds;
+    $("tint").querySelector('[data-by="spec"]').hidden = !meta.specificity;
+    solo.basin = solo.kind = solo.spec = -1;
+    if (!meta.kinds) { $("kinds").innerHTML = ""; setTint(tintBy); return; }
+    $("cCount").textContent = `${meta.kinds.length} families`;
+    $("kinds").innerHTML = `<p class="muted">Each article is sorted by the word its opening sentence uses for it, such as "singer" or "village", traced up to a broad family. Pick a family to dim the rest.</p><ol>` +
+      meta.kinds.map((k, i) => `<li><button data-i="${i}" aria-pressed="false"><span class="sw" style="background:var(--${kindSlot(i)})"></span><span class="grow">${esc(k.name)}</span><span class="num">${fmt(k.pages)}</span><span class="num">${pct(k.pages / meta.placed)}</span></button></li>`).join("") + `</ol>`;
+    $("kinds").querySelectorAll("button").forEach((b) => (b.onclick = () => pick("kind", +b.dataset.i)));
+    setTint(tintBy);          // kept when switching maps; every visit starts on basins
+  }
+  async function open(path) {
+    const keep = selected && selected.t;      // the same article sits somewhere else in another layout
+    epoch++; base = path; tiles.clear(); shards.clear(); deselect(); results.hidden = true;
+    $("status").textContent = "Loading the map…";
+    try {
+      const [m, index] = await Promise.all([getJSON("meta.json"), getJSON("tiles/index.json")]);
+      meta = m; SIZE = m.size; LEVELS = m.levels;
+      exists = Object.fromEntries(Object.entries(index).map(([z, list]) => [z, new Set(list)]));
+    } catch (err) { meta = null; $("status").textContent = "The map data could not be loaded."; return; }
+    view = { k: fitK(), cx: SIZE / 2, cy: SIZE / 2 }; dirty = true;
+    buildKey(); buildKinds();
+    const mine = epoch;
+    fillJourneys([]);
+    getJSON("journeys.json").then((list) => { if (mine === epoch) fillJourneys(list); }).catch(() => {});
+    if (keep) { const hit = (await find(keep, 50)).find((d) => d.t === keep); if (hit) select(hit.id, true); }
+  }
+  // ---- Tooltips for anything that carries data-tip (charts here and in the drawer)
+  let tipOn = null;
+  function tipFor(e) {
+    const el = e.target.closest ? e.target.closest("[data-tip]") : null;
+    if (!el) { if (tipOn) { tip.hidden = true; tipOn = null; } return; }
+    if (el !== tipOn) { tip.innerHTML = el.dataset.tip; tipOn = el; }
+    tip.hidden = false;
+    tip.style.left = Math.max(8, Math.min(e.clientX + 14, W - tip.offsetWidth - 8)) + "px";
+    tip.style.top = Math.max(8, e.clientY - tip.offsetHeight - 10) + "px";
+  }
+  document.addEventListener("pointermove", tipFor);
+  document.addEventListener("pointerdown", tipFor);
+
+  // ---- Structure: a page of charts beside the map, drawn from structure.json when the data folder has one.
+  // Tables: articular/site/build_structure.py. Nothing here changes the map.
+  let S = null, viewNow = "map", variantId = "", sMap = "", sSource = 0, sKind = -1, sMask = false;
+  const asked = location.hash.slice(1).split("+");          // "#kind", "#kind+structure" or "#structure"
+  const WIKIS = { enwiki: "English Wikipedia", simplewiki: "Simple English Wikipedia" };
+  const cap = (t) => t.charAt(0).toUpperCase() + t.slice(1), p1 = (v) => v.toFixed(1) + "%";
+  const short = (v) => (v >= 1e6 ? +(v / 1e6).toFixed(2) + "M" : v >= 1e3 ? +(v / 1e3).toFixed(1) + "k" : String(v));
+  function writeHash() {
+    const h = [variantId, viewNow === "structure" ? "structure" : ""].filter(Boolean).join("+");
+    if (location.hash.slice(1) !== h) history.replaceState(null, "", h ? "#" + h : location.pathname + location.search);
+  }
+  function setView(v) {
+    viewNow = v === "structure" && S ? "structure" : "map";
+    document.body.classList.toggle("structure", viewNow === "structure");
+    $("structure").hidden = viewNow !== "structure";
+    $("views").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === viewNow));
+    tip.hidden = true; results.hidden = true;
+    if (viewNow === "structure") drawStructure();
+    inset(); writeHash();
+  }
+  $("views").querySelectorAll("button").forEach((b) => (b.onclick = () => setView(b.dataset.view)));
+  let redraw = 0;
+  addEventListener("resize", () => { clearTimeout(redraw); redraw = setTimeout(() => { if (viewNow === "structure") drawStructure(); }, 150); });
+
+  function ticks(max, n = 4) {            // round values from 0 to the first one at or past max
+    const raw = max / n, mag = 10 ** Math.floor(Math.log10(raw)), step = [1, 2, 2.5, 5, 10].find((m) => m * mag >= raw) * mag, out = [0];
+    while (out[out.length - 1] < max) out.push(out.length * step);
+    return out;
+  }
+  const svg = (w, h, label, body) => `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" role="img" aria-label="${esc(label)}">${body}</svg>`;
+  const numbers = (head, rows) => `<details class="nums"><summary>Show the numbers</summary><div class="scroll"><table><thead><tr>${head.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>` +
+    rows.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("") + `</tbody></table></div></details>`;
+  const bars = (rows, cls = "") => `<div class="bars ${cls}">` + rows.map((r) =>
+    `<div class="row" data-tip="${esc(r.tip)}"><span class="name">${r.dot != null ? `<span class="dot" style="background:var(--g${r.dot})"></span>` : ""}${esc(r.name)}</span>` +
+    `<span class="track"><span class="fill ${r.value < 50 && cls ? "down" : ""}" style="width:${r.value}%"></span></span><span class="num">${p1(r.value)}</span></div>`).join("") + `</div>`;
+
+  // Articles by the number of clicks to the end of their path, the Poisson curve with the same mean,
+  // and under it the fan-out: each count over the one before.
+  // With a kind of thing picked, its articles are drawn in front of the faded total, and the curve and fan-out are its own.
+  function stepsChart(M, w, kind) {
+    const last = M.steps_longest, by = new Map(M.steps.map((r) => [r.steps, r.pages])), whole = Array.from({ length: last + 1 }, (_, n) => by.get(n) || 0);
+    const pages = kind ? whole.map((_, n) => kind.pages[n] || 0) : whole, one = kind ? esc(kind.name) + ": " : "";
+    const total = pages.reduce((a, b) => a + b, 0), lam = pages.reduce((a, c, n) => a + c * n, 0) / total, pois = [];
+    for (let n = 0, p = Math.exp(-lam); n <= last; n++) { pois.push(total * p); p *= lam / (n + 1); }
+    const L = 46, R = 10, T = 16, H1 = 230, G = 58, H2 = 120, B = 38, bw = (w - L - R) / (last + 1), x = (n) => L + (n + 0.5) * bw;
+    // with a kind picked, heights are shares of each group's own articles, so a small kind can be set against the total
+    const all = whole.reduce((a, b) => a + b, 0), hk = kind ? 100 / total : 1, hw = kind ? 100 / all : 1;
+    const tk = ticks(Math.max(...whole.map((c) => c * hw), ...pages.map((c) => c * hk), ...pois.map((c) => c * hk))), ymax = tk[tk.length - 1], y = (v) => T + H1 * (1 - v / ymax);
+    const every = bw * 5 < 34 ? 10 : bw < 17 ? 5 : bw < 30 ? 2 : 1, y0 = T + H1 + G, clamp = (v) => Math.max(0.1, Math.min(10, v));
+    const yf = (v) => y0 + H2 * (1 - (Math.log10(clamp(v)) + 1) / 2);
+    const fan = pages.map((c, n) => (n && c && pages[n - 1] >= 50 ? c / pages[n - 1] : null));
+    let g = "";
+    for (const v of tk) g += `<line class="grid" x1="${L}" x2="${w - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${kind ? +v.toFixed(1) + "%" : short(v)}</text>`;
+    if (kind) whole.forEach((c, n) => { if (c) g += `<rect class="obs" opacity="0.22" x="${x(n) - Math.max(1, bw / 2 - 1)}" y="${y(c * hw)}" width="${Math.max(2, bw - 2)}" height="${Math.max(1, y(0) - y(c * hw))}" rx="${Math.min(3, bw / 5)}"/>`; });
+    pages.forEach((c, n) => { if (c) g += `<rect class="obs" x="${x(n) - Math.max(1, bw / 2 - 1)}" y="${y(c * hk)}" width="${Math.max(2, bw - 2)}" height="${Math.max(1, y(0) - y(c * hk))}" rx="${Math.min(3, bw / 5)}"/>`; });
+    g += `<polyline class="hyp" points="${pois.map((v, n) => `${x(n)},${y(v * hk)}`).join(" ")}"/>`;
+    const peak = pois.indexOf(Math.max(...pois));
+    g += `<text class="halo strong" x="${x(peak) + 10}" y="${y(pois[peak] * hk) + 2}">Poisson guess</text>`;
+    if (!kind && pages[0] > pages[1] * 2) g += `<text class="halo strong" x="${x(0) + bw / 2 + 6}" y="${y(pages[0]) + 10}">← already at the end: on a cycle, or no link to follow</text>`;
+    for (let n = 0; n <= last; n += every) g += `<text x="${x(n)}" y="${T + H1 + 16}" text-anchor="middle">${n}</text><text x="${x(n)}" y="${y0 + H2 + 16}" text-anchor="middle">${n}</text>`;
+    g += `<text class="strong" x="${L}" y="${y0 - 12}">Fan-out: articles at this distance ÷ articles one click nearer</text>`;
+    for (const v of [0.1, 0.3, 1, 3, 10]) g += `<line class="${v === 1 ? "base" : "grid"}" x1="${L}" x2="${w - R}" y1="${yf(v)}" y2="${yf(v)}"/><text x="${L - 6}" y="${yf(v) + 4}" text-anchor="end">${v}×</text>`;
+    g += `<polyline class="hyp" points="${pois.map((_, n) => (n ? `${x(n)},${yf(lam / n)}` : "")).join(" ")}"/>`;
+    let run = [];
+    fan.forEach((f, n) => { if (f != null) run.push(`${x(n)},${yf(f)}`); if (f == null || n === last) { if (run.length > 1) g += `<polyline class="obsline" points="${run.join(" ")}"/>`; run = []; } });
+    fan.forEach((f, n) => { if (f != null) g += `<circle cx="${x(n)}" cy="${yf(f)}" r="3.2" stroke="var(--obs)" stroke-width="1.5" fill="var(--${f >= 1 ? "obs" : "sheet"})"/>`; });
+    g += `<text x="${L + (w - L - R) / 2}" y="${y0 + H2 + B - 4}" text-anchor="middle">clicks to the end of the path</text>`;
+    pages.forEach((c, n) => {
+      const said = `${one}${n} click${n === 1 ? "" : "s"}: ${fmt(c)} articles<span>${p1(100 * c / total)} of ${kind ? "this kind" : "all articles"}</span>${kind && whole[n] ? `<span>all articles: ${p1(100 * whole[n] / all)} at this distance</span>` : ""}<span>Poisson guess: ${fmt(Math.round(pois[n]))}</span>` + (fan[n] != null ? `<span>fan-out ${fan[n].toFixed(2)}×</span>` : "");
+      g += `<rect class="hit" x="${x(n) - bw / 2}" y="${T}" width="${bw}" height="${y0 + H2 - T}" data-tip="${esc(said)}"/>`;
+    });
+    return `<figure><p class="key"><span><i class="box" style="background:var(--obs)"></i>${kind ? esc(kind.name) : "Articles counted"}</span>${kind ? `<span><i class="box" style="background:var(--obs);opacity:.22"></i>All articles</span><span>Heights are shares of each group's own articles</span>` : ""}<span><i class="dash" style="border-color:var(--hyp)"></i>Poisson distribution with the same average (${lam.toFixed(1)} clicks)</span></p>` +
+      svg(w, y0 + H2 + B, "Articles by number of clicks to the end of their path, with a Poisson curve, and the fan-out below", g) +
+      numbers(["clicks", "articles", "Poisson guess", "fan-out"], pages.map((c, n) => [n, fmt(c), fmt(Math.round(pois[n])), fan[n] == null ? "" : fan[n].toFixed(2)])) + `</figure>`;
+  }
+  // At each distance, where the middle half of the articles sits on the specificity scale
+  function spreadChart(M, w) {
+    const total = M.steps.reduce((a, r) => a + r.pages, 0), rows = M.steps.filter((r) => r.pages >= total / 5000 && r.median != null);
+    const last = rows[rows.length - 1].steps, L = 46, R = 10, T = 12, H = 210, B = 38, bw = (w - L - R) / (last + 1), x = (n) => L + (n + 0.5) * bw, y = (v) => T + H * v / 100;
+    const every = bw * 5 < 34 ? 10 : bw < 17 ? 5 : bw < 30 ? 2 : 1, half = Math.max(2, Math.min(9, bw / 2 - 2));
+    let g = "";
+    for (const v of [0, 25, 50, 75, 100]) g += `<line class="grid" x1="${L}" x2="${w - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}%</text>`;
+    g += `<text class="halo" x="${L + 6}" y="${y(0) + 13}">↑ more general</text><text class="halo" x="${L + 6}" y="${y(100) - 6}">↓ more specific</text>`;
+    for (const r of rows) {
+      const said = `${r.steps} click${r.steps === 1 ? "" : "s"} from the end<span>middle article: more specific than ${p1(r.median)}</span><span>middle half: ${p1(r.quarter)} to ${p1(r.three_quarters)}</span><span>${fmt(r.pages)} articles</span>`;
+      g += `<rect class="obs" opacity="0.32" x="${x(r.steps) - half}" y="${y(r.quarter)}" width="${2 * half}" height="${y(r.three_quarters) - y(r.quarter)}" rx="2"/>` +
+        `<rect class="obs" x="${x(r.steps) - half}" y="${y(r.median) - 1.5}" width="${2 * half}" height="3"/>` +
+        `<rect class="hit" x="${x(r.steps) - bw / 2}" y="${T}" width="${bw}" height="${H}" data-tip="${esc(said)}"/>`;
+    }
+    for (let n = 0; n <= last; n += every) g += `<text x="${x(n)}" y="${T + H + 16}" text-anchor="middle">${n}</text>`;
+    g += `<text x="${L + (w - L - R) / 2}" y="${T + H + B - 4}" text-anchor="middle">clicks to the end of the path</text>`;
+    return `<figure><p class="key"><span><i class="box" style="background:var(--obs);opacity:.32"></i>The middle half of the articles at that distance</span><span><i style="border-color:var(--obs)"></i>The middle article</span></p>` +
+      svg(w, T + H + B, "Specificity of articles at each distance from the end of their path", g) +
+      numbers(["clicks", "articles", "quarter", "middle", "three quarters"], rows.map((r) => [r.steps, fmt(r.pages), p1(r.quarter), p1(r.median), p1(r.three_quarters)])) + `</figure>`;
+  }
+  // Share of links pointing up, section by section, one line for each group of linking articles
+  function sectionChart(t, w) {
+    const wide = w >= 600, L = 46, R = wide ? 150 : 12, T = 12, H = 220, B = 38, n = t.rows.length, x = (i) => L + 8 + i * (w - L - R - 16) / (n - 1), y = (v) => T + H * (1 - v / 100);
+    const tone = (j) => `color-mix(in oklab, var(--up) ${[100, 76, 56, 40][j] || 40}%, var(--sheet))`;
+    let g = "";
+    for (const v of [0, 25, 50, 75, 100]) g += `<line class="${v === 50 ? "base" : "grid"}" x1="${L}" x2="${w - R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}%</text>`;
+    const name = (r, i) => (r.section_number === 0 ? "opening" : i === n - 1 ? r.section_number + "+" : r.section_number);
+    t.rows.forEach((r, i) => { g += `<text x="${x(i)}" y="${T + H + 16}" text-anchor="middle">${name(r, i)}</text>`; });
+    const ends = [];
+    t.sources.forEach((src, j) => {
+      const pts = t.rows.map((r, i) => (r.up[j] == null ? null : [x(i), y(r.up[j])])).filter(Boolean);
+      g += `<polyline fill="none" stroke="${tone(j)}" stroke-width="${j ? 2 : 3}" stroke-linejoin="round" points="${pts.map((p) => p.join(",")).join(" ")}"/>`;
+      t.rows.forEach((r, i) => { if (r.up[j] != null) g += `<circle cx="${x(i)}" cy="${y(r.up[j])}" r="3" fill="${tone(j)}" stroke="var(--sheet)" stroke-width="1.5"/><circle class="hit" cx="${x(i)}" cy="${y(r.up[j])}" r="9" data-tip="${esc(`${cap(src)}, ${r.section_number === 0 ? "opening section" : "section " + name(r, i)}<span>${p1(r.up[j])} of links lead to a more general article</span><span>${fmt(r.links[j])} links</span>`)}"/>`; });
+      if (pts.length) ends.push({ y: pts[pts.length - 1][1], src });
+    });
+    ends.sort((a, b) => a.y - b.y).forEach((e, i, all) => { if (i && e.y - all[i - 1].y < 14) e.y = all[i - 1].y + 14; });
+    if (wide) for (const e of ends) g += `<text class="strong" x="${w - R + 8}" y="${e.y + 4}">${esc(e.src)}</text>`;
+    g += `<text x="${L + (w - L - R) / 2}" y="${T + H + B - 4}" text-anchor="middle">section of the article the link stands in</text>`;
+    return `<figure><p class="key">${t.sources.map((src, j) => `<span><i style="border-color:${tone(j)}"></i>Linking article is in the ${esc(src)}</span>`).join("")}</p>` +
+      svg(w, T + H + B, "Share of links leading to a more general article, by section of the linking article", g) +
+      numbers(["section", ...t.sources], t.rows.map((r, i) => [name(r, i), ...r.up.map((v) => (v == null ? "" : p1(v)))])) + `</figure>`;
+  }
+  // A drawing of an article. Each region's ten link chips are split the way its links are.
+  function anatomy(t, j) {
+    const words = [38, 22, 54, 30, 18, 46, 26, 60, 34, 20, 42, 28, 50, 24, 36];
+    const chip = (i, k) => { const upward = Math.floor((i + 1) * k / 10) > Math.floor(i * k / 10); return `<span class="lk ${upward ? "" : "down"}">${upward ? "↑" : "↓"}</span>`; };
+    const region = (r, i) => {
+      const up = r.up[j], k = Math.round(up / 10), list = /list/.test(r.place), target = r.target[j];
+      let body = "";
+      for (let c = 0; c < 10; c++) {
+        const gray = (list ? [0] : i === 0 ? [c] : [2 * c, 2 * c + 1, c + 7]).map((q) => `<span class="wd" style="width:${words[(q + 3 * i) % words.length]}px"></span>`).join("");
+        body += list ? `<div>${chip(c, k)}${gray}</div>` : (c % 2 ? gray + chip(c, k) : chip(c, k) + gray);
+      }
+      const where = ["First sentence", "Rest of the opening section", "Later sections: running text", "Later sections: lists"][i] || cap(r.place);
+      return (i === 2 ? `<div class="hd"></div>` : "") + `<div class="reg"><div class="txt ${list ? "list" : ""}" aria-hidden="true">${body}</div>
+        <div class="say"><span class="where">${where}</span><strong>${p1(up)}</strong><small>of its links lead to a more general article</small>
+        <small>The typical link here goes to an article in the most general ${target < 10 ? Math.max(0.1, target).toFixed(1) : Math.round(target)}%.</small></div></div>`;
+    };
+    return `<div class="page">${`<div class="ttl"></div>`}${t.rows.map(region).join("")}</div>`;
+  }
+  function flowTable(M) {
+    const cols = [["flow 10+ %", "10 or more"], ["flow 100+ %", "100 or more"], ["flow 1,000+ %", "1,000 or more"], ["flow 10,000+ %", "10,000 or more"]];
+    return `<figure><div class="scroll"><table class="heat"><thead><tr><th>Articles the score ranks in the</th><th>articles</th>${cols.map((c) => `<th>${c[1]} flow through</th>`).join("")}<th>typical flow</th></tr></thead><tbody>` +
+      M.bands.map((b, i) => `<tr><td><span class="dot" style="background:var(--g${i})"></span>${esc(b.name.replace(/^Top /, "top ").replace(/^Most /, "most "))}</td><td>${fmt(b.pages)}</td>` +
+        cols.map((c) => `<td class="v" style="background:color-mix(in srgb, var(--obs) ${Math.round(b[c[0]] * 0.5)}%, transparent)">${p1(b[c[0]])}</td>`).join("") + `<td>${fmt(Math.round(b["median flow"]))}</td></tr>`).join("") +
+      `</tbody></table></div></figure>`;
+  }
+
+  // The same map without two kinds: articles with no kind found, most of them stuck at 0 clicks, and lists
+  const masked = (k, i, all) => i === all.length - 1 || /^Lists/.test(k.name);
+  function maskMap(M) {
+    const pages = M.kinds[0].pages.map((_, n) => M.kinds.reduce((a, k, i, all) => a + (masked(k, i, all) ? 0 : k.pages[n] || 0), 0));
+    const total = pages.reduce((a, b) => a + b, 0);
+    return { ...M, steps: pages.map((c, n) => ({ steps: n, pages: c })).filter((r) => r.pages), steps_mean: pages.reduce((a, c, n) => a + c * n, 0) / total, left_out: M.kinds.filter(masked).reduce((a, k) => a + k.pages.reduce((x, y) => x + y, 0), 0) };
+  }
+  function kindSaid(M) {            // what picking a kind shows, in a sentence
+    const k = M.kinds[sKind];
+    if (!k) return "The total is a mix of very different shapes. Pick a kind of thing, such as people or settlements, to see its articles alone against the total.";
+    const total = k.pages.reduce((a, b) => a + b, 0), mean = k.pages.reduce((a, c, n) => a + c * n, 0) / total, most = k.pages.indexOf(Math.max(...k.pages));
+    return `${esc(k.name)}: ${fmt(total)} articles, ${mean.toFixed(1)} clicks from the end on average (all articles: ${M.steps_mean.toFixed(1)}). The commonest distance is ${most} click${most === 1 ? "" : "s"}, where ${p1(100 * k.pages[most] / total)} of them sit. Many articles of one kind open with the same kind of sentence, so they share their first links and land at the same distance.`;
+  }
+  function drawStructure() {
+    const el = $("structure"), w = Math.max(280, Math.min(860, el.clientWidth - 40)), ids = Object.keys(S.maps);
+    if (!S.maps[sMap]) sMap = S.maps[variantId] ? variantId : ids[0];
+    const M = S.maps[sMap], MS = sMask && M.kinds ? maskMap(M) : M, wikiName = WIKIS[S.wiki] || S.wiki, label = (id) => (variants.find((v) => v.id === id) || { name: cap(S.maps[id].name) }).name;
+    const all = (m) => m.step_direction.find((r) => r.name === "all")["to a more general page %"], top = M.bands[0];
+    const mapPick = ids.length > 1 ? `<div class="pick">Charts in this part describe the paths on one map:<span class="tools" role="group" aria-label="Which map the charts describe">${ids.map((id) => `<button data-map="${id}" aria-pressed="${id === sMap}">${esc(label(id))}</button>`).join("")}</span></div>` : "";
+    const level = Math.abs(M.steps_score) < 0.2, heads = S.headings;
+    const headRows = (list, k) => list.slice(0, k).map((h) => ({ name: cap(h.heading), value: h.up, tip: `${esc(cap(h.heading))}<span>${p1(h.up)} of its links lead to a more general article</span><span>${fmt(h.links)} links · ${Math.round(h.in_lists)}% of them in lists</span>` }));
+    el.innerHTML = `<div class="st">
+      <h2>The structure under the map</h2>
+      <p class="lede">Open almost any Wikipedia article and click the first link in its text. You usually land on a broader subject: Red-tailed hawk leads to Bird of prey, which leads to Bird. The map draws where those paths go. This page shows what they have in common.</p>
+      <p>To measure "broader" we gave every article a specificity rank: the share of all articles that are more general than it. A broad subject such as Village or Species ranks near 0%; one particular village, street or person usually ranks far further down. The rank is an estimate built from counts such as how many other articles link to an article; the map's panel says how. Everything here was counted on ${esc(wikiName)}: ${fmt(M.articles)} articles and ${fmt(S.links)} links.</p>
+
+      <section><p class="part">Along a path</p>
+      <h3>Almost every click leads to a more general article</h3>
+      <p>Take every article, follow its link once, and compare the two ranks.</p>
+      <div class="stats">${ids.map((id) => `<div><strong>${p1(all(S.maps[id]))}</strong><span>of clicks on the ${esc(label(id))} map<br>lead to a more general article</span></div>`).join("")}</div>
+      ${mapPick}
+      <p>The exception is at the top. Below, clicks are grouped by how general the article is that they leave. From the most general articles there is nowhere higher to go, so paths there turn sideways or down, and this is where they close into cycles.</p>
+      <figure>${bars(M.step_direction.filter((r) => r.name !== "all").map((r, i) => ({ name: "From the " + r.name.replace(/^Top /, "top ").replace(/^Most /, "most "), dot: i, value: r["to a more general page %"], tip: `${esc(r.name)}<span>${p1(r["to a more general page %"])} of clicks lead to a more general article</span><span>${fmt(r.steps)} clicks counted</span>` })))}
+      <p class="note">Share of clicks that lead to a more general article, by the rank of the article the click leaves.</p></figure></section>
+
+      <section><h3>How far is an article from the end of its path?</h3>
+      <p>Every path ends in a cycle or at an article with no link to follow. Count the clicks it takes to get there. On this map the average is ${M.steps_mean.toFixed(1)} clicks and the longest path takes ${M.steps_longest}.</p>
+      <p>A natural guess is that these counts follow a Poisson distribution: the smooth, single-humped curve you get when something builds up in independent steps. The dashed line is that guess. The real counts do not follow it. They are lumpy, with several separate peaks, and far more articles sit at the very end of a path than the curve allows.</p>
+      ${M.kinds ? `<div class="pick"><label for="skind">Show one kind of thing:</label><select id="skind"><option value="-1">All kinds</option>${M.kinds.map((k, i) => `<option value="${i}"${i === sKind ? " selected" : ""}>${esc(k.name)}</option>`).join("")}</select>
+      <label><input type="checkbox" id="smask"${sMask ? " checked" : ""}> Leave out lists and articles with no kind found</label></div>
+      <p class="note">${kindSaid(MS)}${sMask ? ` ${fmt(MS.left_out)} articles are left out of the total. Most of those that sit at 0 clicks are disambiguation pages: they list the meanings of a name, so the map gives them no link to follow.` : ""}</p>` : ""}
+      ${stepsChart(MS, w, M.kinds && M.kinds[sKind])}
+      <p class="note">The lower chart is the fan-out: how many articles sit at each distance for every article one click nearer the end. Filled points are above 1 (the paths are still spreading out), hollow points below 1. Under the Poisson guess the fan-out would fall smoothly along the dashed line. ${M.kinds ? "The peaks belong to particular kinds of thing: pick a kind above to see which." : ""}</p></section>
+
+      <section><h3>Distance is not specificity</h3>
+      <p>If every click leads to something more general, it is tempting to read the number of clicks as a measure of how specific an article is: far from the end, very specific. ${level ? "It is not." : "It is only a weak one."} At each distance, the bar below shows where the middle half of the articles rank. ${level ? "The bars wobble but do not climb" : "The bars drift only a little"}: articles many clicks out are, as a group, about as general as articles a few clicks out.</p>
+      ${spreadChart(M, w)}
+      <p class="note">Rank correlation between clicks to the end and specificity: ${M.steps_score.toFixed(2)}, where 1 would mean the same order and 0 no relation. Each click goes up, but articles start from very different heights and climb at very different rates, so the count of clicks says little.</p></section>
+
+      <section><h3>The most general articles are where the paths gather</h3>
+      <p>The rank is built without looking at the map, yet the two agree. Of the ${fmt(top.pages)} most general articles, ${p1(top["flow 1,000+ %"])} have at least 1,000 other articles' paths running through them. In the more specific half, almost nothing flows through anything. This is why the Specificity coloring on the map traces the main streams.</p>
+      ${flowTable(M)}
+      <p class="note">Share of articles in each band with at least that many articles' paths flowing through them. "Typical flow" is the middle article's; 1 means only the article itself.</p></section>
+
+      <section><p class="part">Inside an article</p>
+      <h3>Where a link stands says which way it points</h3>
+      <p>The paths follow only one link from each article. We also looked at all ${fmt(S.links)} links in article text and asked of each: does it lead to a more general article or a more specific one? The answer depends on where in the article the link stands. A first sentence says what the subject is, so its links lead up. Lists further down name examples and members, so their links lead down.</p>
+      <div class="pick">The linking article ranks in the<span class="tools" role="group" aria-label="How general the linking article is">${S.places.sources.map((src, j) => `<button data-source="${j}" aria-pressed="${j === sSource}">${esc(src)}</button>`).join("")}</span></div>
+      <p class="note">Very specific articles link upward almost everywhere, because nearly everything is more general than they are. The pattern is clearest for general articles.</p>
+      <figure>${anatomy(S.places, sSource)}
+      <p class="key"><span><i class="box" style="background:var(--up)"></i>↑ link to a more general article</span><span><i class="box" style="background:var(--down)"></i>↓ link to a more specific article</span><span><i class="box" style="background:var(--rule)"></i>other words</span></p>
+      <p class="note">A drawing of an article, not a real one. Each part shows ten links, split the way that part's links are split across ${esc(wikiName)}.</p></figure>
+      <h4>Most of the change is between the opening and the first section</h4>
+      <p>Section by section, the share of upward links drops once, after the opening, and then drifts. Articles do not get steadily more specific as they go on.</p>
+      ${sectionChart(S.sections, w)}</section>
+
+      <section><h3>The heading says more than the position</h3>
+      <p>Sections that list members of the subject point down. Sections that tell a story point up. Each bar is the share of a heading's links that lead to a more general article; the line marks half.</p>
+      <div class="two"><figure><h4>Headings that point down, to examples</h4>${bars(headRows(heads.down, 14), "half")}</figure>
+      <figure><h4>Headings that point up, to context</h4>${bars(headRows(heads.up, 14), "half")}</figure></div>
+      <p class="note">Headings with the lowest and highest shares among those with enough links to count. Links inside templates, such as navigation boxes and infoboxes, are not included.</p></section>
+
+      <section><h3>See it for one article</h3>
+      <p>Pick any article on the map. Its panel shows a route profile: the article's path laid out straight, with each page placed by how general it is. You can see at a glance which clicks go up and which go down.</p>
+      <p><button class="tomap">Back to the map</button></p>
+      <p class="note">These are estimates. The specificity rank orders about nine in ten pairs correctly when checked against Wikidata's statements that one thing is a kind of another, so individual articles can be misplaced. Counted on ${esc(wikiName)}.</p></section>
+    </div>`;
+    el.querySelectorAll("[data-map]").forEach((b) => (b.onclick = () => { sMap = b.dataset.map; drawStructure(); }));
+    el.querySelectorAll("[data-source]").forEach((b) => (b.onclick = () => { sSource = +b.dataset.source; drawStructure(); }));
+    if ($("skind")) $("skind").onchange = (e) => { sKind = +e.target.value; drawStructure(); };
+    if ($("smask")) $("smask").onchange = (e) => { sMask = e.target.checked; drawStructure(); };
+    el.querySelector(".tomap").onclick = () => setView("map");
+  }
+
+  let variants = [];          // a data folder may hold several maps of the same articles, one per link rule
+  try { const r = await fetch(ROOT + "variants.json"); if (r.ok) variants = await r.json(); } catch (err) { /* a single data set */ }
+  if (variants.length > 1) {
+    const pick = (id) => {
+      const v = variants.find((x) => x.id === id) || variants[0];
+      $("sets").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.id === v.id));
+      variantId = v.id; writeHash();
+      open(ROOT + v.path);          // keeps the selected article, wherever it sits in the other map
+    };
+    $("sets").innerHTML = variants.map((v) => `<button data-id="${esc(v.id)}" title="${esc(v.about || "")}">${esc(v.name)}</button>`).join("");
+    $("sets").hidden = false;
+    $("sets").querySelectorAll("button").forEach((b) => (b.onclick = () => pick(b.dataset.id)));
+    pick(asked[0]);
+  } else open(ROOT + (variants[0] ? variants[0].path : ""));
+  try { const r = await fetch(ROOT + "structure.json"); if (r.ok) S = await r.json(); } catch (err) { /* no charts for this data */ }
+  if (S) { $("views").hidden = false; if (asked.includes("structure")) setView("structure"); }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+[project]
+name = "articular"
+version = "0.1.0"
+description = "Compute specificity over Wikipedia pages"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=1.1",
+    "en-core-web-sm",
+    "jupyterlab>=4.2",
+    "matplotlib>=3.9",
+    "numpy>=2.0",
+    "pandas>=2.2",
+    "pyarrow>=17",
+    "scipy>=1.14",
+    "spacy>=3.8,<3.9",
+    "tqdm>=4.66",
+]
+
+[dependency-groups]
+dev = [
+    "jupytext>=1.16",
+    "nbconvert>=7.16",
+]
+# the embedding models of articular/experiments/family_embeddings.py; not installed by a plain `uv sync`
+embed = [
+    "sentence-transformers>=3.0",
+]
+
+[tool.uv.sources]
+en-core-web-sm = { url = "https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl" }
