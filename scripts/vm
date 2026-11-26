@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Work with the analysis VM through SSM Session Manager.
+#
+#   scripts/vm shell      open a shell as ec2-user
+#   scripts/vm jupyter    forward the VM's Jupyter to http://localhost:8888
+#   scripts/vm status     show whether the VM is running
+#   scripts/vm start      start the VM
+#   scripts/vm stop       stop the VM (stops compute billing; the disk is kept)
+#
+# Requires the AWS CLI and the Session Manager plugin, with AWS_PROFILE (or other credentials)
+# and WIKI_INSTANCE_ID, the VM's instance id, set in the environment.
+set -euo pipefail
+
+export AWS_REGION="${AWS_REGION:-us-east-1}"
+PORT="${PORT:-8888}"
+
+instance="${WIKI_INSTANCE_ID:?set WIKI_INSTANCE_ID to the instance id of the VM}"
+
+case "${1:-}" in
+  shell)
+    aws ssm start-session --target "$instance" \
+      --document-name AWS-StartInteractiveCommand \
+      --parameters 'command=["sudo -iu ec2-user"]'
+    ;;
+  jupyter)
+    echo "Forwarding http://localhost:$PORT to the VM (Ctrl-C to stop)"
+    aws ssm start-session --target "$instance" \
+      --document-name AWS-StartPortForwardingSession \
+      --parameters "portNumber=$PORT,localPortNumber=$PORT"
+    ;;
+  status)
+    aws ec2 describe-instances --instance-ids "$instance" \
+      --query 'Reservations[0].Instances[0].State.Name' --output text
+    ;;
+  start)
+    aws ec2 start-instances --instance-ids "$instance" >/dev/null
+    aws ec2 wait instance-status-ok --instance-ids "$instance"
+    echo "running"
+    ;;
+  stop)
+    aws ec2 stop-instances --instance-ids "$instance" >/dev/null
+    aws ec2 wait instance-stopped --instance-ids "$instance"
+    echo "stopped"
+    ;;
+  *)
+    sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
+    exit 1
+    ;;
+esac
