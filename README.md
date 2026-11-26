@@ -2,11 +2,17 @@
 
 Compute specificity over Wikipedia pages.
 
-Following the first link of a Wikipedia article, again and again, usually ends at
-[Philosophy](https://en.wikipedia.org/wiki/Wikipedia:Getting_to_Philosophy). The number of
-steps it takes is a rough measure of how specific a topic is. This project tests that idea,
-then looks for better measures of which of two related articles is the more general one,
-checked against Wikidata's subclass-of, instance-of, part-of and located-in statements.
+The starting point was the
+[Wikipedia philosophy phenomenon](https://en.wikipedia.org/wiki/Wikipedia_philosophy_phenomenon):
+the claim that following the first link of an article, again and again, leads to Philosophy,
+which would make the number of steps a rough measure of how specific a topic is. On the
+November 2026 dump of English Wikipedia that no longer holds. Fewer than half of all articles
+(45.5%) reach Philosophy by first links, and every chain ends in a loop or a dead end, most of
+them in one of two loops: Existence and Reality, or a seven-article loop around Knowledge.
+
+So this project looks for better measures of which of two related articles is the more general
+one, and checks each against Wikidata's subclass-of, instance-of, part-of and located-in
+statements.
 
 ## Setup
 
